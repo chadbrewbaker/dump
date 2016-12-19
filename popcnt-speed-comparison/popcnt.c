@@ -189,8 +189,8 @@ uint32_t simd_baseline4(const uint64_t *buf, int len) {
   __m128i temp[8];
   const uint64_t zeros[2] = {0x00, 0x00};
   __m128i sum_pair;
-  sum_pair[0]=0;
-  sum_pair[1]=0;
+  sum_pair[0] = 0;
+  sum_pair[1] = 0;
   sum_pair = _mm_loadu_si128((__m128i *)zeros);
 
   for (int i = 0; i < len; i += 8) {
@@ -208,13 +208,38 @@ uint32_t simd_baseline4(const uint64_t *buf, int len) {
   return _mm_extract_epi64(sum_pair, 0) + _mm_extract_epi64(sum_pair, 1);
 }
 
+uint32_t simd_baseline8(const uint64_t *buf, int len) {
+  __m128i temp[8];
+  const uint64_t zeros[2] = {0x00, 0x00};
+  __m128i sum_pair;
+  sum_pair[0] = 0;
+  sum_pair[1] = 0;
+  // isum_pair = _mm_loadu_si128((__m128i *)zeros);
 
-uint32_t no_op_baseline(const uint64_t *buf, int len) {
-   return 0;
+  for (int i = 0; i < len; i += 16) {
+    temp[0] = _mm_load_si128((__m128i *)&buf[i]);
+    temp[1] = _mm_load_si128((__m128i *)&buf[i + 2]);
+    temp[2] = _mm_load_si128((__m128i *)&buf[i + 4]);
+    temp[3] = _mm_load_si128((__m128i *)&buf[i + 6]);
+    temp[4] = _mm_load_si128((__m128i *)&buf[i + 8]);
+    temp[5] = _mm_load_si128((__m128i *)&buf[i + 10]);
+    temp[6] = _mm_load_si128((__m128i *)&buf[i + 12]);
+    temp[7] = _mm_load_si128((__m128i *)&buf[i + 14]);
+
+    temp[0] = _mm_add_epi64(temp[0], temp[1]);
+    temp[2] = _mm_add_epi64(temp[2], temp[3]);
+    temp[4] = _mm_add_epi64(temp[4], temp[5]);
+    temp[6] = _mm_add_epi64(temp[6], temp[7]);
+
+    temp[1] = _mm_add_epi64(temp[0], temp[2]);
+    temp[3] = _mm_add_epi64(temp[4], temp[6]);
+    temp[5] = _mm_add_epi64(temp[1], temp[3]);
+    sum_pair = _mm_add_epi64(temp[5], sum_pair);
+  }
+  return _mm_extract_epi64(sum_pair, 0) + _mm_extract_epi64(sum_pair, 1);
 }
 
-
-
+uint32_t no_op_baseline(const uint64_t *buf, int len) { return 0; }
 
 // With gcc, this code has the same problem as the previous fn, where movq
 // gets translated into an xmm->mem movq.
@@ -495,13 +520,11 @@ int main() {
     printf("simd baseline4: %.2f\n",
            gb_per_s(run_and_time_fn(len, iterations, &simd_baseline4), len));
 
+    printf("simd baseline8: %.2f\n",
+           gb_per_s(run_and_time_fn(len, iterations, &simd_baseline8), len));
 
-printf("no op baseline: %.2f\n",
-		           gb_per_s(run_and_time_fn(len, iterations, &no_op_baseline), len));
-
-
-
-
+    printf("no op baseline: %.2f\n",
+           gb_per_s(run_and_time_fn(len, iterations, &no_op_baseline), len));
 
 #ifdef USE_SOFT
 // printf("SSSE3: %.2f\n", gb_per_s(run_mula_popcnt(len, iterations), len));
