@@ -19,8 +19,10 @@
 uint64_t buffer[MAX_LEN] __attribute__((aligned(LINE_SIZE)));
 
 void setup_buffer(int len) {
-  buffer[0] = 1;
-  buffer[len - 1] = 3;
+	int i;
+	for(i=0;i<MAX_LEN;i++)
+  		buffer[i] = 1;
+  //ibuffer[len - 1] = 3;
 }
 
 // Note: this emits a popcnt with clang 3.4 but not with clang 3.0
@@ -333,7 +335,8 @@ int run_and_time_fn(int len, int iterations,
     tsc = tsc_after - tsc_before;
     min_tsc = min_tsc < tsc ? min_tsc : tsc;
   }
-
+  printf("\n%d %d\n", total, len*iterations);
+  //assert(total == len*iterations);
   //  assert(total == iterations * 3); // Check that we don't have an off by one
   //  error.
 
@@ -472,11 +475,12 @@ double gb_per_s(int cycles, int len) {
 }
 
 int main() {
-  for (int len = MIN_LEN; len <= MAX_LEN; len *= DELTA) {
+    setup_buffer(0);
+      	for (int len = MIN_LEN; len <= MAX_LEN; len *= DELTA) {
     //    int iterations = adjusted_iterations(len, ITERATIONS);
     // printf("int %lu long long %lu\n", sizeof(int), sizeof(long long));
 
-    int iterations = ITERATIONS;
+    int iterations = 2;//ITERATIONS;
     // printf("builtin32: %.2f\n", run_and_time_fn(len, iterations,
     // &builtin_popcnt32));
     printf("bytes: %i\n", 8 * len);
